@@ -39,6 +39,8 @@ public class AgenteGUI extends Agent {
         });
     }
 
+    // Comentario Prueba
+
     public void enviarNotificacion() {
         ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
         msg.setContent("competencia iniciada");
