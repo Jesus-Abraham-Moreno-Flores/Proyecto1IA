@@ -1,0 +1,1 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"><modelVersion>4.0.0</modelVersion><parent><groupId>edu.equipo</groupId><artifactId>8puzzle-avances</artifactId><version>0.2.0</version></parent><artifactId>proyectoia</artifactId><dependencies><dependency><groupId>edu.equipo</groupId><artifactId>common</artifactId><version>0.2.0</version></dependency></dependencies></project>

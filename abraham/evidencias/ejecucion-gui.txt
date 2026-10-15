@@ -1,0 +1,35 @@
+AVANCE abraham | JDK: C:\Program Files\Java\jdk-21\bin\java.exe
+oct 15, 2026 12:10:23 A.�M. jade.core.Runtime beginContainer
+INFO: ----------------------------------
+    This is JADE 4.3.3 - revision 6726 of 2014/12/09 09:33:02
+    downloaded in Open Source, under LGPL restrictions,
+    at http://jade.tilab.com/
+----------------------------------------
+oct 15, 2026 12:10:23 A.�M. jade.imtp.leap.LEAPIMTPManager initialize
+INFO: Listening for intra-platform commands on address:
+- jicp://127.0.0.1:1099
+
+oct 15, 2026 12:10:23 A.�M. jade.core.BaseService init
+INFO: Service jade.core.management.AgentManagement initialized
+oct 15, 2026 12:10:23 A.�M. jade.core.BaseService init
+INFO: Service jade.core.messaging.Messaging initialized
+oct 15, 2026 12:10:23 A.�M. jade.core.BaseService init
+INFO: Service jade.core.resource.ResourceManagement initialized
+oct 15, 2026 12:10:23 A.�M. jade.core.BaseService init
+INFO: Service jade.core.mobility.AgentMobility initialized
+oct 15, 2026 12:10:23 A.�M. jade.core.BaseService init
+INFO: Service jade.core.event.Notification initialized
+oct 15, 2026 12:10:23 A.�M. jade.core.AgentContainerImpl joinPlatform
+INFO: --------------------------------------
+Agent container Main-Container@127.0.0.1 is ready.
+--------------------------------------------
+SOPORTE: GraphFixtureAgent local para probar jugadores.
+JADE iniciado - avance de Abraham. Ejecute esta Main para la demostracion.
+GENERADOR inicio=123406758 inversiones=2 conversacion=1971126e-330d-4c15-9945-362e41e84e1b
+PASO jugador3 iteracion=0 tablero=123406758
+PASO jugador3 iteracion=1 tablero=123406758
+PASO jugador3 iteracion=2 tablero=123456708
+GENERADOR ruta validada: jugador3 movimientos=2 nodos_cache=2
+RESULTADO jugador3 H3 estado=SOLUCION VALIDADA extraidos=3 movimientos=2
+RUTA jugador3 [123406758, 123456708, 123456780]
+BOTONES PASS Abraham: una extraccion por clic hasta meta

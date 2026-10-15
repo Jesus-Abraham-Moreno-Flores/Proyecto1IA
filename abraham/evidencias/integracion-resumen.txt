@@ -1,0 +1,5 @@
+PASS JADE abraham/normal codigo=0
+PASS JADE abraham/meta codigo=0
+PASS JADE abraham/insoluble codigo=2
+PASS JADE abraham/limite codigo=2
+INTEGRACION PASS abraham
