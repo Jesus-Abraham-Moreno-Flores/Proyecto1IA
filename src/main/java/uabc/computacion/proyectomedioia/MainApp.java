@@ -29,6 +29,7 @@ public class MainApp extends Application {
     private static String nombreJugadorLocal;
     private static String claseAgenteLocal;
     private static String ipServidorCentral;
+    private static String ipClienteLocal;
 
     private GridPane gridFichas;
     private Label lblEstado;
@@ -46,10 +47,11 @@ public class MainApp extends Application {
         launch(args);
     }
 
-    public static void setConfiguracionCliente(String nombreJugador, String claseAgente, String ipServidor) {
+    public static void setConfiguracionCliente(String nombreJugador, String claseAgente, String ipServidor, String ipCliente) {
         nombreJugadorLocal = nombreJugador;
         claseAgenteLocal = claseAgente;
         ipServidorCentral = ipServidor;
+        ipClienteLocal = ipCliente;
     }
 
     public void setAgenteGUI(AgenteGUI agenteGUI) {
@@ -298,10 +300,15 @@ public class MainApp extends Application {
                 Profile perfil = new ProfileImpl();
 
                 if (ipServidorCentral != null && !ipServidorCentral.trim().isEmpty()) {
-                    // Modo Cliente Distribuido (Red LAN entre varias PCs)
+                    // Modo Cliente Distribuido
                     perfil.setParameter(Profile.MAIN_HOST, ipServidorCentral);
                     perfil.setParameter(Profile.MAIN_PORT, "1099");
                     perfil.setParameter(Profile.CONTAINER_NAME, "Contenedor-" + nombreJugadorLocal);
+
+                    // IMPORTANTE: Le indicamos a JADE cuál es nuestra IP real en la LAN
+                    if (ipClienteLocal != null && !ipClienteLocal.isEmpty()) {
+                        perfil.setParameter(Profile.LOCAL_HOST, ipClienteLocal);
+                    }
 
                     AgentContainer contenedorRemoto = rt.createAgentContainer(perfil);
 
@@ -322,30 +329,8 @@ public class MainApp extends Application {
                     agregarTextoPantalla("SISTEMA", "Conectado al servidor " + ipServidorCentral + " como " + nombreJugadorLocal);
 
                 } else {
-                    // Modo Local Standalone (Todos los agentes en una sola computadora)
-                    perfil.setParameter(Profile.MAIN_HOST, "localhost");
-                    perfil.setParameter(Profile.GUI, "true");
-
-                    AgentContainer contenedorPrincipal = rt.createMainContainer(perfil);
-
-                    AgentController acGUI = contenedorPrincipal.createNewAgent("gui", "uabc.computacion.proyectomedioia.AgenteGUI", new Object[]{this});
-                    acGUI.start();
-
-                    AgentController acGenerador = contenedorPrincipal.createNewAgent("generador", "uabc.computacion.proyectomedioia.AgenteGenerador", null);
-                    acGenerador.start();
-
-                    AgentController acJugador1 = contenedorPrincipal.createNewAgent("jugador1", "uabc.computacion.proyectomedioia.AgenteJugadorPiezaFuera", null);
-                    acJugador1.start();
-
-                    AgentController acJugador2 = contenedorPrincipal.createNewAgent("jugador2", "uabc.computacion.proyectomedioia.AgenteJugadorManhattan", null);
-                    acJugador2.start();
-
-                    AgentController acJugador3 = contenedorPrincipal.createNewAgent("jugador3", "uabc.computacion.proyectomedioia.AgenteJugadorLinearConflict", null);
-                    acJugador3.start();
-
-                    agregarTextoPantalla("SISTEMA", "Plataforma JADE Local lista. Listos para competir.");
+                    // Modo Local Standalone...
                 }
-
             } catch (Exception ex) {
                 agregarTextoPantalla("ERROR", "No se pudo iniciar/conectar con la plataforma JADE.");
                 ex.printStackTrace();
