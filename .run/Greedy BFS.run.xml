@@ -1,0 +1,9 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Greedy BFS" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="puzzle.abraham.DemoGreedy" />
+    <module name="8puzzle-avances" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

@@ -1,0 +1,5 @@
+PASS JADE normal codigo=0
+PASS JADE meta codigo=0
+PASS JADE insoluble codigo=2
+PASS JADE limite codigo=2
+INTEGRACION CONSOLA PASS

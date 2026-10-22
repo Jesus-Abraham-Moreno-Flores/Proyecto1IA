@@ -1,0 +1,21 @@
+GREEDY BFS - prioridad h(n), con desempate por orden de llegada
+
+Iteracion 1 | H3 = 2
+1 2 3 
+4 _ 6 
+7 5 8 
+Sucesores: 103426758(h=3) 123456708(h=1) 123046758(h=3) 123460758(h=3) 
+
+Iteracion 2 | H3 = 1
+1 2 3 
+4 5 6 
+7 _ 8 
+Sucesores: 123406758(h=2) 123456078(h=2) 123456780(h=0) 
+
+Iteracion 3 | H3 = 0
+1 2 3 
+4 5 6 
+7 8 _ 
+Resultado: Meta alcanzada; ruta validada.
+Movimientos de la solucion: 2
+Ruta: [123406758, 123456708, 123456780]
