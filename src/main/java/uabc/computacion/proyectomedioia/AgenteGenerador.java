@@ -16,24 +16,24 @@ public class AgenteGenerador extends Agent {
             public void action() {
                 ACLMessage msg = myAgent.receive();
                 if (msg != null) {
-                    // Si la interfaz nos pide el tablero, armamos uno nuevo
+                    // Nos piden un tablero nuevo porque el usuario presiono el boton
                     if (msg.getPerformative() == ACLMessage.REQUEST && msg.getContent().equals("dame_tablero")) {
                         byte[] nuevoTablero = crearTableroValido();
 
-                        // Lo pasamos a texto separado por comas para no batallar con serializacion compleja
-                        String textoTablero = "";
+                        // Empaquetamos el arreglo en un String separado por comas para mandarlo facil
+                        StringBuilder textoTablero = new StringBuilder();
                         for (int i = 0; i < nuevoTablero.length; i++) {
-                            textoTablero += nuevoTablero[i];
-                            if(i < nuevoTablero.length - 1) textoTablero += ",";
+                            textoTablero.append(nuevoTablero[i]);
+                            if(i < nuevoTablero.length - 1) textoTablero.append(",");
                         }
 
                         ACLMessage respuesta = msg.createReply();
                         respuesta.setPerformative(ACLMessage.INFORM);
-                        respuesta.setContent(textoTablero);
+                        respuesta.setContent(textoTablero.toString());
                         send(respuesta);
                     }
                 } else {
-                    block(); // Bloqueamos para que no consuma CPU a lo loco
+                    block(); // Le damos un respiro a la CPU si no hay mensajes
                 }
             }
         });
@@ -44,14 +44,14 @@ public class AgenteGenerador extends Agent {
         Random rnd = new Random();
         boolean esValido = false;
 
-        // Iteramos hasta que nos salga un tablero que si se pueda resolver
+        // Ciclamos hasta que salga uno par (resoluble)
         while (!esValido) {
-            // Llenar del 0 al 8 (el 0 será nuestro hueco vacio)
+            // Llenamos el arreglo del 0 al 8
             for (byte i = 0; i < 9; i++) {
                 tablero[i] = i;
             }
 
-            // Revolver las fichas a lo random
+            // Revolvemos las fichas (Fisher-Yates)
             for (int i = tablero.length - 1; i > 0; i--) {
                 int index = rnd.nextInt(i + 1);
                 byte temp = tablero[index];
@@ -59,18 +59,17 @@ public class AgenteGenerador extends Agent {
                 tablero[i] = temp;
             }
 
-            // Checar si la combinacion tiene solucion
             esValido = revisarInversiones(tablero);
         }
         return tablero;
     }
 
-    // Regla matemática del 8-puzzle: solo se resuelve si las inversiones son pares
+    // Regla de paridad para saber si se puede armar
     private boolean revisarInversiones(byte[] tablero) {
         int inversas = 0;
         for (int i = 0; i < tablero.length - 1; i++) {
             for (int j = i + 1; j < tablero.length; j++) {
-                // Saltamos el 0 porque es el espacio en blanco, no una ficha real
+                // El 0 es el hueco, asi que lo saltamos en el conteo
                 if (tablero[i] != 0 && tablero[j] != 0 && tablero[i] > tablero[j]) {
                     inversas++;
                 }
