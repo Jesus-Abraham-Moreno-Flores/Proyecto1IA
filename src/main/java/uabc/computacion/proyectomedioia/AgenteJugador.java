@@ -31,19 +31,14 @@ public class AgenteJugador extends Agent {
 
                         HeuriPiezaFuera heuristica1 = new HeuriPiezaFuera();
                         HeuriManhattan heuristica2 = new HeuriManhattan();
-                        // LinearConflict heuristica3 = new LinearConflict();
 
-                        GreedySearch buscador = null;
-
-                        if (getLocalName().equals("jugador1")) {
-                            buscador = new GreedySearch(estadoInicial, board -> heuristica1.calcular(extraerArreglo(board), estadoMeta));
-                        }
-                        else if (getLocalName().equals("jugador2")) {
-                            buscador = new GreedySearch(estadoInicial, board -> heuristica2.calcular(extraerArreglo(board), estadoMeta));
-                        }
-                        else if (getLocalName().equals("jugador3")) {
-                            // buscador = new GreedySearch(estadoInicial, board -> heuristica3.calcular(board));
-                        }
+                        GreedySearch buscador = switch (getLocalName()) {
+                            case "jugador1" -> new GreedySearch(estadoInicial, board -> heuristica1.calcular(extraerArreglo(board), estadoMeta));
+                            case "jugador2" -> new GreedySearch(estadoInicial, board -> heuristica2.calcular(extraerArreglo(board), estadoMeta));
+                            // CORRECCIÓN: Se actualizó el nombre del método a "estimate" según la clase LinearConflict
+                            case "jugador3" -> new GreedySearch(estadoInicial, board -> LinearConflict.estimate(board));
+                            default -> null;
+                        };
 
                         if (buscador != null) {
                             long tiempoInicio = System.currentTimeMillis();
@@ -53,14 +48,12 @@ public class AgenteJugador extends Agent {
                             int nodosExpandidos = buscador.expanded();
                             int longitudCamino = solucion.isEmpty() ? 0 : solucion.size() - 1;
 
-                            // 1. Enviamos el mensaje de texto con las estadísticas
                             String msjResultados = String.format(
                                     "¡Meta encontrada! | Tiempo: %d ms | Expandidos: %d nodos | Pasos: %d",
                                     tiempoTotal, nodosExpandidos, longitudCamino
                             );
                             enviarMensajeGUI(msjResultados, msg.getSender());
 
-                            // 2. Empaquetamos la secuencia de tableros y la enviamos para la animación
                             if (!solucion.isEmpty()) {
                                 StringBuilder rutaStr = new StringBuilder("ruta|");
                                 for (Board b : solucion) {

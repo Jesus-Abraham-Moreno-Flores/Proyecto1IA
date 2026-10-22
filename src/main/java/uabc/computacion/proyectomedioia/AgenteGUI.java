@@ -13,7 +13,6 @@ public class AgenteGUI extends Agent {
 
     @Override
     protected void setup() {
-        // Enlazar el agente a la ventana gráfica desde sus argumentos iniciales
         Object[] args = getArguments();
         if (args != null && args.length > 0) {
             vista = (MainApp) args[0];
@@ -29,7 +28,6 @@ public class AgenteGUI extends Agent {
                     String emisor = msg.getSender().getLocalName();
                     String contenido = msg.getContent();
 
-                    // Escudo: Ignoramos mensajes vacíos del sistema (evita que se caiga el agente)
                     if (contenido == null) {
                         return;
                     }
@@ -44,6 +42,22 @@ public class AgenteGUI extends Agent {
                         }
                         if (vista != null) {
                             vista.pintarTablero(arregloTablero);
+                        }
+                    }
+                    // EXTRAEMOS LAS METRICAS DEL MENSAJE DE TEXTO
+                    else if (contenido.startsWith("¡Meta encontrada!")) {
+                        if (vista != null) {
+                            try {
+                                String[] partes = contenido.split("\\|");
+                                // Extrae solo los números de cada segmento de texto
+                                long tiempo = Long.parseLong(partes[1].replaceAll("\\D+", ""));
+                                int expandidos = Integer.parseInt(partes[2].replaceAll("\\D+", ""));
+                                int pasos = Integer.parseInt(partes[3].replaceAll("\\D+", ""));
+
+                                vista.registrarMetricas(emisor, tiempo, expandidos, pasos);
+                            } catch (Exception e) {
+                                vista.agregarTextoPantalla(emisor, "Error al procesar métricas.");
+                            }
                         }
                     }
                     else if (contenido.startsWith("ruta|") && contenido.contains("-")) {
@@ -87,6 +101,9 @@ public class AgenteGUI extends Agent {
     }
 
     public void iniciarCompetencia() {
+        if (vista != null) {
+            vista.limpiarDashboard();
+        }
         ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
         msg.setContent("competencia_iniciada|" + ultimoTableroGenerado);
         msg.addReceiver(new AID("jugador1", AID.ISLOCALNAME));
