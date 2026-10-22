@@ -50,7 +50,6 @@ public final class GreedySearch {
         agregarNodo(estadoInicial, null);
     }
 
-    /** Extrae un solo nodo. Hay que incorporar sus sucesores antes del siguiente. */
     public Board next() {
         if (nodoActual != null) {
             throw new IllegalStateException("Falta incorporar los sucesores del nodo actual.");
@@ -65,7 +64,6 @@ public final class GreedySearch {
         return nodoActual.estado;
     }
 
-    /** Incorpora solamente estados nuevos, conservando el padre de cada uno. */
     public void accept(List<Board> sucesores) {
         if (nodoActual == null) {
             throw new IllegalStateException("No hay un nodo seleccionado.");
@@ -90,7 +88,6 @@ public final class GreedySearch {
         frontera.add(nuevoNodo);
     }
 
-    /** Reconstruye la ruta siguiendo padres desde la meta hasta el inicio. */
     public List<Board> solution() {
         if (nodoActual == null || !nodoActual.estado.isGoal()) {
             throw new IllegalStateException("Todavia no se ha encontrado la meta.");
@@ -110,15 +107,35 @@ public final class GreedySearch {
         return List.copyOf(camino);
     }
 
-    /** Permite probar una busqueda completa sin iniciar JADE ni JavaFX. */
     public List<Board> resolver() {
+        int iteracion = 1;
         Board estado = next();
+
         while (estado != null) {
             if (estado.isGoal()) {
                 return solution();
             }
-            accept(estado.neighbors());
-            estado = next();
+
+            List<Board> hijos = estado.neighbors();
+            accept(hijos);
+            Board siguienteEstado = next();
+
+            // Impresión en consola exclusivamente para las primeras 3 iteraciones
+            if (iteracion <= 3) {
+                System.out.println("--- Iteración " + iteracion + " ---");
+                System.out.println("Estado analizado: " + estado.key());
+                System.out.println("Hijos generados:");
+                for (Board hijo : hijos) {
+                    System.out.println("   -> " + hijo.key());
+                }
+                if (siguienteEstado != null) {
+                    System.out.println(">> Nodo seleccionado para expandir (menor costo global): " + siguienteEstado.key());
+                }
+                System.out.println("----------------------\n");
+            }
+
+            estado = siguienteEstado;
+            iteracion++;
         }
         return List.of();
     }
