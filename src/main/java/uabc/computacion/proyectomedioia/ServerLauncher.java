@@ -8,7 +8,7 @@ import jade.wrapper.AgentController;
 
 public class ServerLauncher {
     // Cambia esto por la IP local de la PC Servidor
-    public static final String IP_SERVIDOR = "192.168.1.50";
+    public static final String IP_SERVIDOR = "10.21.44.103";
 
     public static void main(String[] args) {
         try {
