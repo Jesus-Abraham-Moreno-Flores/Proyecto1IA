@@ -305,10 +305,13 @@ public class MainApp extends Application {
                     perfil.setParameter(Profile.MAIN_PORT, "1099");
                     perfil.setParameter(Profile.CONTAINER_NAME, "Contenedor-" + nombreJugadorLocal);
 
-                    // IMPORTANTE: Le indicamos a JADE cuál es nuestra IP real en la LAN
                     if (ipClienteLocal != null && !ipClienteLocal.isEmpty()) {
                         perfil.setParameter(Profile.LOCAL_HOST, ipClienteLocal);
                     }
+
+                    // CLAVE DE LA SOLUCIÓN:
+                    // Asigna un puerto libre aleatorio para que no choque con el 1099 ni entre agentes
+                    perfil.setParameter(Profile.LOCAL_PORT, "0");
 
                     AgentContainer contenedorRemoto = rt.createAgentContainer(perfil);
 
@@ -329,8 +332,30 @@ public class MainApp extends Application {
                     agregarTextoPantalla("SISTEMA", "Conectado al servidor " + ipServidorCentral + " como " + nombreJugadorLocal);
 
                 } else {
-                    // Modo Local Standalone...
+                    // Modo Local Standalone
+                    perfil.setParameter(Profile.MAIN_HOST, "localhost");
+                    perfil.setParameter(Profile.GUI, "true");
+
+                    AgentContainer contenedorPrincipal = rt.createMainContainer(perfil);
+
+                    AgentController acGUI = contenedorPrincipal.createNewAgent("gui", "uabc.computacion.proyectomedioia.AgenteGUI", new Object[]{this});
+                    acGUI.start();
+
+                    AgentController acGenerador = contenedorPrincipal.createNewAgent("generador", "uabc.computacion.proyectomedioia.AgenteGenerador", null);
+                    acGenerador.start();
+
+                    AgentController acJugador1 = contenedorPrincipal.createNewAgent("jugador1", "uabc.computacion.proyectomedioia.AgenteJugadorPiezaFuera", null);
+                    acJugador1.start();
+
+                    AgentController acJugador2 = contenedorPrincipal.createNewAgent("jugador2", "uabc.computacion.proyectomedioia.AgenteJugadorManhattan", null);
+                    acJugador2.start();
+
+                    AgentController acJugador3 = contenedorPrincipal.createNewAgent("jugador3", "uabc.computacion.proyectomedioia.AgenteJugadorLinearConflict", null);
+                    acJugador3.start();
+
+                    agregarTextoPantalla("SISTEMA", "Plataforma JADE Local lista. Listos para competir.");
                 }
+
             } catch (Exception ex) {
                 agregarTextoPantalla("ERROR", "No se pudo iniciar/conectar con la plataforma JADE.");
                 ex.printStackTrace();
