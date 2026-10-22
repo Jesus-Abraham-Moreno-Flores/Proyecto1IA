@@ -1,10 +1,11 @@
-package puzzle.abraham;
+package uabc.computacion.proyectomedioia;
 
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import puzzle.model.Board;
+
 import java.util.List;
 
 /** Agente real de JADE: recibe REQUEST y devuelve INFORM o FAILURE. */

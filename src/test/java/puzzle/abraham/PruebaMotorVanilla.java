@@ -2,6 +2,8 @@ package puzzle.abraham;
 
 import puzzle.model.Board;
 import puzzle.model.PathValidator;
+import uabc.computacion.proyectomedioia.GreedySearch;
+import uabc.computacion.proyectomedioia.LinearConflict;
 
 import java.util.List;
 

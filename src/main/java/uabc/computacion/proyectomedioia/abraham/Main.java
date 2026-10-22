@@ -1,9 +1,12 @@
-package puzzle.abraham;
+package uabc.computacion.proyectomedioia.abraham;
 
 import jade.core.Profile;
 import jade.core.ProfileImpl;
 import jade.wrapper.AgentContainer;
 import puzzle.model.Board;
+import uabc.computacion.proyectomedioia.AgenteConsola;
+import uabc.computacion.proyectomedioia.Player3Agent;
+
 import java.util.logging.Level;
 import java.util.logging.Logger;
 

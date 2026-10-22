@@ -8,9 +8,9 @@ Abrir el `pom.xml` raíz, pulsar **Reload All Maven Projects** y ejecutar la Mai
 
 | Clase | Qué demuestra |
 |---|---|
-| `puzzle.abraham.DemoHeuristica` | Tablero, Manhattan, conflictos independientes y resultado H3 |
-| `puzzle.abraham.DemoGreedy` | Cada estado extraído, su H3, sucesores y ruta final, sin JADE |
-| `puzzle.abraham.Main` | Jugador3 real en JADE: REQUEST, pensar, razonar, actuar e INFORM |
+| `uabc.computacion.proyectomedioia.DemoHeuristica` | Tablero, Manhattan, conflictos independientes y resultado H3 |
+| `uabc.computacion.proyectomedioia.DemoGreedy` | Cada estado extraído, su H3, sucesores y ruta final, sin JADE |
+| `uabc.computacion.proyectomedioia.abraham.Main` | Jugador3 real en JADE: REQUEST, pensar, razonar, actuar e INFORM |
 
 Los resultados aparecen en la consola Run de IntelliJ. Para usar la ventana Terminal integrada también se pueden ejecutar estos comandos:
 

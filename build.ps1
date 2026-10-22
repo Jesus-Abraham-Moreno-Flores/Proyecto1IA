@@ -49,13 +49,13 @@ if ($Mode -eq 'build') { Write-Host 'COMPILACION PASS'; exit 0 }
 switch ($Mode) {
     'heuristica' {
         if ($PSBoundParameters.ContainsKey('Board')) {
-            & $java -cp $classpath puzzle.abraham.DemoHeuristica "--board=$Board"
+            & $java -cp $classpath uabc.computacion.proyectomedioia.DemoHeuristica "--board=$Board"
         } else {
-            & $java -cp $classpath puzzle.abraham.DemoHeuristica
+            & $java -cp $classpath uabc.computacion.proyectomedioia.DemoHeuristica
         }
     }
     'greedy' {
-        & $java -cp $classpath puzzle.abraham.DemoGreedy "--board=$Board"
+        & $java -cp $classpath uabc.computacion.proyectomedioia.DemoGreedy "--board=$Board"
     }
     { $_ -in @('motor','test') } {
         New-Item -ItemType Directory -Force $tests | Out-Null

@@ -1,7 +1,8 @@
-package puzzle.abraham;
+package uabc.computacion.proyectomedioia;
 
 import puzzle.model.Board;
 import puzzle.model.PathValidator;
+
 import java.util.List;
 
 /** Demostracion paso a paso de Greedy BFS usando solo Java estandar. */

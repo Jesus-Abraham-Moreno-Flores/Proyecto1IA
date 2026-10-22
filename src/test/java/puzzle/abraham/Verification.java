@@ -1,6 +1,8 @@
 package puzzle.abraham;
 
 import puzzle.model.*;
+import uabc.computacion.proyectomedioia.GreedySearch;
+import uabc.computacion.proyectomedioia.LinearConflict;
 
 import java.util.*;
 

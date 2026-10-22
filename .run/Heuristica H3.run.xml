@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Heuristica H3" type="Application" factoryName="Application">
-    <option name="MAIN_CLASS_NAME" value="puzzle.abraham.DemoHeuristica" />
+    <option name="MAIN_CLASS_NAME" value="uabc.computacion.proyectomedioia.DemoHeuristica" />
     <module name="8puzzle-avances" />
     <method v="2">
       <option name="Make" enabled="true" />

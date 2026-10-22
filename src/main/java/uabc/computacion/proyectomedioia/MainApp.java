@@ -5,13 +5,13 @@ import jade.core.ProfileImpl;
 import jade.core.Runtime;
 import jade.wrapper.AgentContainer;
 import jade.wrapper.AgentController;
-
-import javafx.animation.FadeTransition;
-import javafx.animation.ScaleTransition;
+import javafx.animation.SequentialTransition;
+import javafx.animation.TranslateTransition;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -24,174 +24,219 @@ import javafx.util.Duration;
 import java.util.List;
 
 public class MainApp extends Application {
-    private AgenteGUI agenteGUI;
-    private Label statusLabel; // Aqui esta nuestra nueva barra minimalista
+
     private GridPane gridFichas;
-    private Button btnArrancar;
+    private Label lblEstado;
+    private AgenteGUI agenteGUI;
+
+    private final int TAMANO_CASILLA = 80;
+    private final int ESPACIADO = 10;
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+
+    public void setAgenteGUI(AgenteGUI agenteGUI) {
+        this.agenteGUI = agenteGUI;
+    }
 
     @Override
-    public void start(Stage stage) {
-        stage.setTitle("8-Puzzle Dashboard - IA");
+    public void start(Stage escenarioPrincipal) {
+        VBox raiz = new VBox(20);
+        raiz.setAlignment(Pos.CENTER);
+        raiz.setPadding(new Insets(30));
+        raiz.setStyle("-fx-background-color: #1a1e24;");
 
-        Button btnGenerar = new Button("Generar Nuevo Reto");
-        btnGenerar.setStyle("-fx-background-color: #2d3446; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10px;");
-
-        btnArrancar = new Button("¡Aceptar Reto e Iniciar!");
-        btnArrancar.setStyle("-fx-background-color: #00ff66; -fx-text-fill: #151922; -fx-font-weight: bold; -fx-padding: 10px;");
-        btnArrancar.setDisable(true);
-
-        HBox panelBotones = new HBox(15, btnGenerar, btnArrancar);
+        HBox panelBotones = new HBox(15);
         panelBotones.setAlignment(Pos.CENTER);
 
-        // Diseno de la barra de estado
-        statusLabel = new Label("> Esperando para generar tablero...");
-        statusLabel.setStyle("-fx-text-fill: #00ff66; -fx-font-family: 'Consolas'; -fx-font-size: 14px;");
-        statusLabel.setAlignment(Pos.CENTER);
-        statusLabel.setMaxWidth(Double.MAX_VALUE);
+        Button btnGenerar = new Button("Generar Nuevo Reto");
+        btnGenerar.setStyle("-fx-background-color: #2a2e35; -fx-text-fill: #8a8d91; -fx-padding: 10 20;");
+
+        Button btnIniciar = new Button("¡Aceptar Reto e Iniciar!");
+        btnIniciar.setStyle("-fx-background-color: #1e5c3a; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10 20;");
+
+        panelBotones.getChildren().addAll(btnGenerar, btnIniciar);
 
         gridFichas = new GridPane();
         gridFichas.setAlignment(Pos.CENTER);
-        gridFichas.setHgap(8);
-        gridFichas.setVgap(8);
+        gridFichas.setHgap(ESPACIADO);
+        gridFichas.setVgap(ESPACIADO);
+
+        lblEstado = new Label("> Esperando conexión de agentes...");
+        lblEstado.setStyle("-fx-text-fill: #00ff66; -fx-font-family: 'Consolas'; -fx-font-size: 14px;");
+
+        raiz.getChildren().addAll(panelBotones, gridFichas, lblEstado);
 
         btnGenerar.setOnAction(e -> {
             if (agenteGUI != null) {
-                statusLabel.setText("> Solicitando tablero resoluble al generador...");
                 agenteGUI.pedirTableroNuevo();
-                btnArrancar.setDisable(false);
             }
         });
 
-        btnArrancar.setOnAction(e -> {
+        btnIniciar.setOnAction(e -> {
             if (agenteGUI != null) {
-                statusLabel.setText("> ¡COMPETENCIA INICIADA! Agentes buscando ruta...");
-                btnArrancar.setDisable(true);
-                btnGenerar.setDisable(true);
                 agenteGUI.iniciarCompetencia();
             }
         });
 
-        VBox root = new VBox(25, panelBotones, gridFichas, statusLabel);
-        root.setPadding(new Insets(20));
-        root.setStyle("-fx-background-color: #151922;");
+        Scene escena = new Scene(raiz, 800, 600);
+        escenarioPrincipal.setTitle("8-Puzzle Dashboard - IA");
+        escenarioPrincipal.setScene(escena);
+        escenarioPrincipal.show();
 
-        Scene scene = new Scene(root, 450, 520);
-        stage.setScene(scene);
-        stage.show();
-
-        prenderJADE();
+        iniciarJADE();
     }
 
-    public void pintarTablero(byte[] tablero) {
+    // CORRECCIÓN: Envolvemos el repintado en el hilo de JavaFX
+    public void pintarTablero(byte[] estado) {
         Platform.runLater(() -> {
             gridFichas.getChildren().clear();
-            int pos = 0;
 
-            for (int f = 0; f < 3; f++) {
-                for (int c = 0; c < 3; c++) {
-                    String textoFicha = tablero[pos] == 0 ? "" : String.valueOf(tablero[pos]);
-                    Label ficha = new Label(textoFicha);
+            for (int i = 0; i < 9; i++) {
+                int numero = estado[i];
 
-                    if (tablero[pos] == 0) {
-                        ficha.setStyle("-fx-background-color: #1a1f2b; -fx-background-radius: 8px;");
-                    } else {
-                        ficha.setStyle(
-                                "-fx-background-color: #2d3446; " +
-                                        "-fx-text-fill: #00ff66; " +
-                                        "-fx-border-color: #00ff66; " +
-                                        "-fx-border-width: 2px; " +
-                                        "-fx-border-radius: 8px; " +
-                                        "-fx-background-radius: 8px; " +
-                                        "-fx-font-size: 32px; " +
-                                        "-fx-font-weight: bold;"
-                        );
-                    }
+                Label ficha = new Label();
+                ficha.setPrefSize(TAMANO_CASILLA, TAMANO_CASILLA);
+                ficha.setAlignment(Pos.CENTER);
 
-                    ficha.setMinSize(80, 80);
-                    ficha.setAlignment(Pos.CENTER);
-                    gridFichas.add(ficha, c, f);
+                if (numero == 0) {
+                    ficha.setText("");
+                    ficha.setStyle("-fx-background-color: transparent;");
+                } else {
+                    ficha.setText(String.valueOf(numero));
+                    ficha.setStyle(
+                            "-fx-background-color: #1a1e24;" +
+                                    "-fx-border-color: #00ff66;" +
+                                    "-fx-border-radius: 5;" +
+                                    "-fx-border-width: 2;" +
+                                    "-fx-text-fill: #00ff66;" +
+                                    "-fx-font-size: 24px;" +
+                                    "-fx-font-weight: bold;"
+                    );
+                }
 
-                    ScaleTransition st = new ScaleTransition(Duration.millis(250), ficha);
-                    st.setFromX(0.5); st.setFromY(0.5);
-                    st.setToX(1.0); st.setToY(1.0);
+                gridFichas.add(ficha, i % 3, i / 3);
+            }
+        });
+    }
 
-                    FadeTransition ft = new FadeTransition(Duration.millis(250), ficha);
-                    ft.setFromValue(0);
-                    ft.setToValue(1.0);
+    public void agregarTextoPantalla(String emisor, String mensaje) {
+        Platform.runLater(() -> {
+            lblEstado.setText("> [" + emisor.toUpperCase() + "] " + mensaje);
+        });
+    }
 
-                    st.play();
-                    ft.play();
+    // CORRECCIÓN: Envolvemos TODA la construcción de la animación en el hilo de JavaFX
+    public void animarSecuenciaGanadora(List<byte[]> secuencia, String emisor) {
+        Platform.runLater(() -> {
+            lblEstado.setText("> [" + emisor.toUpperCase() + "] Animando solución paso a paso...");
 
-                    pos++;
+            // Pintamos el estado inicial directamente sin llamar al método externo para evitar desfases
+            gridFichas.getChildren().clear();
+            for (int i = 0; i < 9; i++) {
+                int numero = secuencia.get(0)[i];
+                Label ficha = new Label();
+                ficha.setPrefSize(TAMANO_CASILLA, TAMANO_CASILLA);
+                ficha.setAlignment(Pos.CENTER);
+                if (numero == 0) {
+                    ficha.setText("");
+                    ficha.setStyle("-fx-background-color: transparent;");
+                } else {
+                    ficha.setText(String.valueOf(numero));
+                    ficha.setStyle("-fx-background-color: #1a1e24; -fx-border-color: #00ff66; -fx-border-radius: 5; -fx-border-width: 2; -fx-text-fill: #00ff66; -fx-font-size: 24px; -fx-font-weight: bold;");
+                }
+                gridFichas.add(ficha, i % 3, i / 3);
+            }
+
+            SequentialTransition animacionGlobal = new SequentialTransition();
+            int desplazamientoPixeles = TAMANO_CASILLA + ESPACIADO;
+
+            for (int i = 0; i < secuencia.size() - 1; i++) {
+                byte[] estadoActual = secuencia.get(i);
+                byte[] estadoSiguiente = secuencia.get(i + 1);
+
+                int posHuecoActual = -1;
+                int posFichaMovida = -1;
+
+                for (int j = 0; j < 9; j++) {
+                    if (estadoActual[j] == 0) posHuecoActual = j;
+                    if (estadoSiguiente[j] == 0) posFichaMovida = j;
+                }
+
+                if (posFichaMovida == -1) continue; // Seguro por si el algoritmo devuelve un paso duplicado
+
+                byte numeroFicha = estadoActual[posFichaMovida];
+                Node nodoFicha = buscarNodoPorNumero(numeroFicha);
+
+                if (nodoFicha != null) {
+                    int colInicial = posFichaMovida % 3;
+                    int filaInicial = posFichaMovida / 3;
+                    int colFinal = posHuecoActual % 3;
+                    int filaFinal = posHuecoActual / 3;
+
+                    int deltaX = (colFinal - colInicial) * desplazamientoPixeles;
+                    int deltaY = (filaFinal - filaInicial) * desplazamientoPixeles;
+
+                    TranslateTransition transicion = new TranslateTransition(Duration.millis(250), nodoFicha);
+                    transicion.setByX(deltaX);
+                    transicion.setByY(deltaY);
+
+                    animacionGlobal.getChildren().add(transicion);
                 }
             }
-            statusLabel.setText("> Tablero renderizado. Validación Matemática: OK.");
+
+            animacionGlobal.setOnFinished(e -> {
+                pintarTablero(secuencia.get(secuencia.size() - 1));
+                lblEstado.setText("> [" + emisor.toUpperCase() + "] ¡Rompecabezas resuelto!");
+            });
+
+            animacionGlobal.play();
         });
     }
 
-    public void animarSecuenciaGanadora(List<byte[]> listaMovimientos, String ganador) {
-        Platform.runLater(() -> {
-            statusLabel.setText(">> Reproduciendo ruta ganadora de: " + ganador);
-        });
-
-        new Thread(() -> {
-            for (int i = 0; i < listaMovimientos.size(); i++) {
-                byte[] estadoActual = listaMovimientos.get(i);
-                pintarTablero(estadoActual);
-
-                try {
-                    Thread.sleep(600);
-                } catch (InterruptedException ex) {
-                    ex.printStackTrace();
+    private Node buscarNodoPorNumero(byte numero) {
+        for (Node nodo : gridFichas.getChildren()) {
+            if (nodo instanceof Label) {
+                String texto = ((Label) nodo).getText();
+                if (texto.equals(String.valueOf(numero))) {
+                    return nodo;
                 }
             }
-            Platform.runLater(() -> statusLabel.setText(">> Animación finalizada."));
-        }).start();
+        }
+        return null;
     }
 
-    public void agregarTextoPantalla(String quien, String queDijo) {
-        Platform.runLater(() -> {
-            // Solo reemplaza el texto con el mensaje mas reciente
-            statusLabel.setText("[" + quien + "]: " + queDijo);
-        });
-    }
-
-    private void prenderJADE() {
+    private void iniciarJADE() {
         new Thread(() -> {
             try {
                 Runtime rt = Runtime.instance();
-                Profile p = new ProfileImpl();
-                p.setParameter(Profile.GUI, "true");
-                AgentContainer container = rt.createMainContainer(p);
+                Profile perfil = new ProfileImpl();
+                perfil.setParameter(Profile.MAIN_HOST, "localhost");
+                perfil.setParameter(Profile.GUI, "true");
 
-                AgentController generador = container.createNewAgent(
-                        "generador",
-                        "uabc.computacion.proyectomedioia.AgenteGenerador",
-                        null
-                );
-                generador.start();
+                AgentContainer contenedorPrincipal = rt.createMainContainer(perfil);
 
-                for (int i = 1; i <= 3; i++) {
-                    AgentController jugador = container.createNewAgent(
-                            "jugador" + i,
-                            "uabc.computacion.proyectomedioia.AgenteJugador",
-                            null
-                    );
-                    jugador.start();
-                }
+                AgentController acGUI = contenedorPrincipal.createNewAgent("gui", "uabc.computacion.proyectomedioia.AgenteGUI", new Object[]{this});
+                acGUI.start();
 
-                agenteGUI = new AgenteGUI();
-                agenteGUI.setVista(this);
-                AgentController guiCtrl = container.acceptNewAgent("guiAgent", agenteGUI);
-                guiCtrl.start();
+                AgentController acGenerador = contenedorPrincipal.createNewAgent("generador", "uabc.computacion.proyectomedioia.AgenteGenerador", null);
+                acGenerador.start();
 
-            } catch (Exception e) {
-                e.printStackTrace();
+                AgentController acJugador1 = contenedorPrincipal.createNewAgent("jugador1", "uabc.computacion.proyectomedioia.AgenteJugador", null);
+                acJugador1.start();
+
+                AgentController acJugador2 = contenedorPrincipal.createNewAgent("jugador2", "uabc.computacion.proyectomedioia.AgenteJugador", null);
+                acJugador2.start();
+
+                AgentController acJugador3 = contenedorPrincipal.createNewAgent("jugador3", "uabc.computacion.proyectomedioia.AgenteJugador", null);
+                acJugador3.start();
+
+                agregarTextoPantalla("SISTEMA", "Plataforma JADE lista. Generador y 3 Jugadores en línea.");
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
             }
         }).start();
-    }
-
-    public static void main(String[] args) {
-        launch(args);
     }
 }

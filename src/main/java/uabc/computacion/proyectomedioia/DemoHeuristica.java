@@ -1,4 +1,4 @@
-package puzzle.abraham;
+package uabc.computacion.proyectomedioia;
 
 import puzzle.model.Board;
 
