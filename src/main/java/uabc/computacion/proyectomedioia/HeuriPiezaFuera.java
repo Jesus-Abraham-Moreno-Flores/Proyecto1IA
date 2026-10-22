@@ -13,7 +13,7 @@ public class HeuriPiezaFuera implements Heuristica {
         }
         return h;
     }
-
+    //nada
     @Override
     public String getNombre() {
         return "Piezas Fuera de Lugar (h1)";

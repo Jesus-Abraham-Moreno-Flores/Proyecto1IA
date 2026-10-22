@@ -23,6 +23,7 @@ public class HeuriManhattan implements Heuristica {
         }
         return h;
     }
+    //nada
 
     private int buscarPosicion(int[] arreglo, int valor) {
         for (int i = 0; i < arreglo.length; i++) {
