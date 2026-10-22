@@ -1,13 +1,10 @@
 package uabc.computacion.proyectomedioia;
 
 import jade.core.Profile;
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
 import jade.core.ProfileImpl;
 import jade.core.Runtime;
 import jade.wrapper.AgentContainer;
 import jade.wrapper.AgentController;
-import javafx.animation.SequentialTransition;
 import javafx.animation.TranslateTransition;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -29,6 +26,10 @@ import java.util.List;
 
 public class MainApp extends Application {
 
+    private static String nombreJugadorLocal;
+    private static String claseAgenteLocal;
+    private static String ipServidorCentral;
+
     private GridPane gridFichas;
     private Label lblEstado;
     private AgenteGUI agenteGUI;
@@ -43,6 +44,12 @@ public class MainApp extends Application {
 
     public static void main(String[] args) {
         launch(args);
+    }
+
+    public static void setConfiguracionCliente(String nombreJugador, String claseAgente, String ipServidor) {
+        nombreJugadorLocal = nombreJugador;
+        claseAgenteLocal = claseAgente;
+        ipServidorCentral = ipServidor;
     }
 
     public void setAgenteGUI(AgenteGUI agenteGUI) {
@@ -165,7 +172,6 @@ public class MainApp extends Application {
                 txtStatsJ3.setStyle("-fx-text-fill: #00ff66; -fx-font-family: 'Consolas';");
             }
 
-            // Si ya terminaron los 3, determinamos al ganador
             if (resultadosCompetencia.size() == 3) {
                 determinarGanador();
             }
@@ -173,7 +179,6 @@ public class MainApp extends Application {
     }
 
     private void determinarGanador() {
-        // Criterio de victoria: 1. Menos Pasos -> 2. Menos Nodos Expandidos -> 3. Menor Tiempo
         resultadosCompetencia.sort(Comparator
                 .comparingInt((Metricas m) -> m.pasos)
                 .thenComparingInt(m -> m.nodos)
@@ -221,25 +226,57 @@ public class MainApp extends Application {
     public void animarSecuenciaGanadora(List<byte[]> secuencia, String emisor) {
         Platform.runLater(() -> {
             lblEstado.setText("> [" + emisor.toUpperCase() + "] Animando solución (" + (secuencia.size() - 1) + " pasos)...");
-
-            Timeline timeline = new Timeline();
-            int intervaloMs = 300; // Ajusta el tiempo (en milisegundos) entre cada paso
-
-            for (int i = 0; i < secuencia.size(); i++) {
-                final int pasoActual = i;
-                KeyFrame frame = new KeyFrame(
-                        Duration.millis(i * intervaloMs),
-                        e -> pintarTablero(secuencia.get(pasoActual))
-                );
-                timeline.getKeyFrames().add(frame);
-            }
-
-            timeline.setOnFinished(e -> {
-                lblEstado.setText("> [" + emisor.toUpperCase() + "] ¡Demostración finalizada con éxito!");
-            });
-
-            timeline.play();
+            animarPaso(secuencia, 0, emisor);
         });
+    }
+
+    private void animarPaso(List<byte[]> secuencia, int pasoActual, String emisor) {
+        if (pasoActual >= secuencia.size() - 1) {
+            pintarTablero(secuencia.get(secuencia.size() - 1));
+            lblEstado.setText("> [" + emisor.toUpperCase() + "] ¡Demostración finalizada con éxito!");
+            return;
+        }
+
+        byte[] estadoActual = secuencia.get(pasoActual);
+        byte[] estadoSiguiente = secuencia.get(pasoActual + 1);
+
+        pintarTablero(estadoActual);
+
+        int posHuecoActual = -1;
+        int posFichaAMover = -1;
+
+        for (int j = 0; j < 9; j++) {
+            if (estadoActual[j] == 0) posHuecoActual = j;
+            if (estadoSiguiente[j] == 0) posFichaAMover = j;
+        }
+
+        if (posFichaAMover == -1) {
+            animarPaso(secuencia, pasoActual + 1, emisor);
+            return;
+        }
+
+        byte numeroFicha = estadoActual[posFichaAMover];
+        Node nodoFicha = buscarNodoPorNumero(numeroFicha);
+
+        if (nodoFicha != null) {
+            int colInicial = posFichaAMover % 3;
+            int filaInicial = posFichaAMover / 3;
+            int colFinal = posHuecoActual % 3;
+            int filaFinal = posHuecoActual / 3;
+
+            int desplazamientoPixeles = TAMANO_CASILLA + ESPACIADO;
+            int deltaX = (colFinal - colInicial) * desplazamientoPixeles;
+            int deltaY = (filaFinal - filaInicial) * desplazamientoPixeles;
+
+            TranslateTransition transicion = new TranslateTransition(Duration.millis(200), nodoFicha);
+            transicion.setByX(deltaX);
+            transicion.setByY(deltaY);
+
+            transicion.setOnFinished(e -> animarPaso(secuencia, pasoActual + 1, emisor));
+            transicion.play();
+        } else {
+            animarPaso(secuencia, pasoActual + 1, emisor);
+        }
     }
 
     private Node buscarNodoPorNumero(byte numero) {
@@ -259,36 +296,64 @@ public class MainApp extends Application {
             try {
                 Runtime rt = Runtime.instance();
                 Profile perfil = new ProfileImpl();
-                perfil.setParameter(Profile.MAIN_HOST, "localhost");
-                perfil.setParameter(Profile.GUI, "true");
 
-                AgentContainer contenedorPrincipal = rt.createMainContainer(perfil);
+                if (ipServidorCentral != null && !ipServidorCentral.trim().isEmpty()) {
+                    // Modo Cliente Distribuido (Red LAN entre varias PCs)
+                    perfil.setParameter(Profile.MAIN_HOST, ipServidorCentral);
+                    perfil.setParameter(Profile.MAIN_PORT, "1099");
+                    perfil.setParameter(Profile.CONTAINER_NAME, "Contenedor-" + nombreJugadorLocal);
 
-                AgentController acGUI = contenedorPrincipal.createNewAgent("gui", "uabc.computacion.proyectomedioia.AgenteGUI", new Object[]{this});
-                acGUI.start();
+                    AgentContainer contenedorRemoto = rt.createAgentContainer(perfil);
 
-                AgentController acGenerador = contenedorPrincipal.createNewAgent("generador", "uabc.computacion.proyectomedioia.AgenteGenerador", null);
-                acGenerador.start();
+                    AgentController acGUI = contenedorRemoto.createNewAgent(
+                            "gui_" + nombreJugadorLocal,
+                            "uabc.computacion.proyectomedioia.AgenteGUI",
+                            new Object[]{this}
+                    );
+                    acGUI.start();
 
-                // Instanciación corregida usando las subclases específicas
-                AgentController acJugador1 = contenedorPrincipal.createNewAgent("jugador1", "uabc.computacion.proyectomedioia.AgenteJugadorPiezaFuera", null);
-                acJugador1.start();
+                    AgentController acJugador = contenedorRemoto.createNewAgent(
+                            nombreJugadorLocal,
+                            claseAgenteLocal,
+                            null
+                    );
+                    acJugador.start();
 
-                AgentController acJugador2 = contenedorPrincipal.createNewAgent("jugador2", "uabc.computacion.proyectomedioia.AgenteJugadorManhattan", null);
-                acJugador2.start();
+                    agregarTextoPantalla("SISTEMA", "Conectado al servidor " + ipServidorCentral + " como " + nombreJugadorLocal);
 
-                AgentController acJugador3 = contenedorPrincipal.createNewAgent("jugador3", "uabc.computacion.proyectomedioia.AgenteJugadorLinearConflict", null);
-                acJugador3.start();
+                } else {
+                    // Modo Local Standalone (Todos los agentes en una sola computadora)
+                    perfil.setParameter(Profile.MAIN_HOST, "localhost");
+                    perfil.setParameter(Profile.GUI, "true");
 
-                agregarTextoPantalla("SISTEMA", "Plataforma JADE lista. Listos para competir.");
+                    AgentContainer contenedorPrincipal = rt.createMainContainer(perfil);
+
+                    AgentController acGUI = contenedorPrincipal.createNewAgent("gui", "uabc.computacion.proyectomedioia.AgenteGUI", new Object[]{this});
+                    acGUI.start();
+
+                    AgentController acGenerador = contenedorPrincipal.createNewAgent("generador", "uabc.computacion.proyectomedioia.AgenteGenerador", null);
+                    acGenerador.start();
+
+                    AgentController acJugador1 = contenedorPrincipal.createNewAgent("jugador1", "uabc.computacion.proyectomedioia.AgenteJugadorPiezaFuera", null);
+                    acJugador1.start();
+
+                    AgentController acJugador2 = contenedorPrincipal.createNewAgent("jugador2", "uabc.computacion.proyectomedioia.AgenteJugadorManhattan", null);
+                    acJugador2.start();
+
+                    AgentController acJugador3 = contenedorPrincipal.createNewAgent("jugador3", "uabc.computacion.proyectomedioia.AgenteJugadorLinearConflict", null);
+                    acJugador3.start();
+
+                    agregarTextoPantalla("SISTEMA", "Plataforma JADE Local lista. Listos para competir.");
+                }
 
             } catch (Exception ex) {
+                agregarTextoPantalla("ERROR", "No se pudo iniciar/conectar con la plataforma JADE.");
                 ex.printStackTrace();
             }
         }).start();
     }
 
-    // Clase auxiliar para ordenar los resultados
+    // Clase auxiliar para ordenar los resultados de la competencia
     private static class Metricas {
         String agente;
         long tiempo;
