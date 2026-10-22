@@ -1,12 +1,32 @@
 package uabc.computacion.proyectomedioia;
 
 import jade.core.Agent;
+import jade.core.AID;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.lang.acl.ACLMessage;
 import puzzle.model.Board;
 import java.util.List;
 
-public class AgenteJugador extends Agent {
+public abstract class AgenteJugador extends Agent {
+
+    // Contenedor para los resultados del proceso de razonamiento
+    public static class ResultadoBusqueda {
+        private final List<Board> solucion;
+        private final long tiempoTotal;
+        private final int nodosExpandidos;
+
+        public ResultadoBusqueda(List<Board> solucion, long tiempoTotal, int nodosExpandidos) {
+            this.solucion = solucion;
+            this.tiempoTotal = tiempoTotal;
+            this.nodosExpandidos = nodosExpandidos;
+        }
+
+        public List<Board> getSolucion() { return solucion; }
+        public long getTiempoTotal() { return tiempoTotal; }
+        public int getNodosExpandidos() { return nodosExpandidos; }
+    }
+
+    protected final int[] estadoMeta = {1, 2, 3, 4, 5, 6, 7, 8, 0};
 
     @Override
     protected void setup() {
@@ -16,53 +36,8 @@ public class AgenteJugador extends Agent {
             @Override
             public void action() {
                 ACLMessage msg = myAgent.receive();
-
                 if (msg != null) {
-                    String contenido = msg.getContent();
-
-                    if (contenido.startsWith("competencia_iniciada|")) {
-                        String strTableroGUI = contenido.split("\\|")[1];
-                        enviarMensajeGUI("¡Recibí el tablero! Iniciando búsqueda...", msg.getSender());
-
-                        String formatoAbraham = strTableroGUI.replace(",", "");
-                        Board estadoInicial = new Board(formatoAbraham);
-
-                        int[] estadoMeta = {1, 2, 3, 4, 5, 6, 7, 8, 0};
-
-                        HeuriPiezaFuera heuristica1 = new HeuriPiezaFuera();
-                        HeuriManhattan heuristica2 = new HeuriManhattan();
-
-                        GreedySearch buscador = switch (getLocalName()) {
-                            case "jugador1" -> new GreedySearch(estadoInicial, board -> heuristica1.calcular(extraerArreglo(board), estadoMeta));
-                            case "jugador2" -> new GreedySearch(estadoInicial, board -> heuristica2.calcular(extraerArreglo(board), estadoMeta));
-                            // CORRECCIÓN: Se actualizó el nombre del método a "estimate" según la clase LinearConflict
-                            case "jugador3" -> new GreedySearch(estadoInicial, board -> LinearConflict.estimate(board));
-                            default -> null;
-                        };
-
-                        if (buscador != null) {
-                            long tiempoInicio = System.currentTimeMillis();
-                            List<Board> solucion = buscador.resolver();
-                            long tiempoTotal = System.currentTimeMillis() - tiempoInicio;
-
-                            int nodosExpandidos = buscador.expanded();
-                            int longitudCamino = solucion.isEmpty() ? 0 : solucion.size() - 1;
-
-                            String msjResultados = String.format(
-                                    "¡Meta encontrada! | Tiempo: %d ms | Expandidos: %d nodos | Pasos: %d",
-                                    tiempoTotal, nodosExpandidos, longitudCamino
-                            );
-                            enviarMensajeGUI(msjResultados, msg.getSender());
-
-                            if (!solucion.isEmpty()) {
-                                StringBuilder rutaStr = new StringBuilder("ruta|");
-                                for (Board b : solucion) {
-                                    rutaStr.append(b.key()).append("-");
-                                }
-                                enviarMensajeGUI(rutaStr.toString(), msg.getSender());
-                            }
-                        }
-                    }
+                    percibir(msg);
                 } else {
                     block();
                 }
@@ -70,7 +45,57 @@ public class AgenteJugador extends Agent {
         });
     }
 
-    private int[] extraerArreglo(Board board) {
+    /**
+     * PERCIBIR: Procesa la entrada del mensaje ACL y extrae el estado inicial del tablero.
+     */
+    protected void percibir(ACLMessage msg) {
+        String contenido = msg.getContent();
+
+        if (contenido != null && contenido.startsWith("competencia_iniciada|")) {
+            String strTableroGUI = contenido.split("\\|")[1];
+            enviarMensajeGUI("¡Recibí el tablero! Iniciando búsqueda...", msg.getSender());
+
+            String formatoAbraham = strTableroGUI.replace(",", "");
+            Board estadoInicial = new Board(formatoAbraham);
+
+            // Fase 2: Razonar (se delega a la subclase específica)
+            ResultadoBusqueda resultado = razonar(estadoInicial);
+
+            // Fase 3: Actuar (envía la respuesta a la GUI)
+            if (resultado != null) {
+                actuar(msg.getSender(), resultado);
+            }
+        }
+    }
+
+    /**
+     * RAZONAR: Método abstracto donde cada agente aplicará su heurística.
+     */
+    protected abstract ResultadoBusqueda razonar(Board estadoInicial);
+
+    /**
+     * ACTUAR: Formatea y envía los mensajes de respuesta hacia la GUI.
+     */
+    protected void actuar(AID receptorGUI, ResultadoBusqueda resultado) {
+        List<Board> solucion = resultado.getSolucion();
+        int longitudCamino = solucion.isEmpty() ? 0 : solucion.size() - 1;
+
+        String msjResultados = String.format(
+                "¡Meta encontrada! | Tiempo: %d ms | Expandidos: %d nodos | Pasos: %d",
+                resultado.getTiempoTotal(), resultado.getNodosExpandidos(), longitudCamino
+        );
+        enviarMensajeGUI(msjResultados, receptorGUI);
+
+        if (!solucion.isEmpty()) {
+            StringBuilder rutaStr = new StringBuilder("ruta|");
+            for (Board b : solucion) {
+                rutaStr.append(b.key()).append("-");
+            }
+            enviarMensajeGUI(rutaStr.toString(), receptorGUI);
+        }
+    }
+
+    protected int[] extraerArreglo(Board board) {
         int[] arreglo = new int[9];
         for (int i = 0; i < 9; i++) {
             arreglo[i] = board.at(i);
@@ -78,7 +103,7 @@ public class AgenteJugador extends Agent {
         return arreglo;
     }
 
-    private void enviarMensajeGUI(String texto, jade.core.AID receptorGUI) {
+    protected void enviarMensajeGUI(String texto, AID receptorGUI) {
         ACLMessage respuesta = new ACLMessage(ACLMessage.INFORM);
         respuesta.addReceiver(receptorGUI);
         respuesta.setContent(texto);
