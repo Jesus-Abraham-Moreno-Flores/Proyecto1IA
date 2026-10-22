@@ -1,37 +1,60 @@
-# Proyecto IA: avance individual con JADE
+# Proyecto IA: Abraham por consola
 
-## Ejecutar
+Un solo proyecto Maven, sin interfaz gráfica ni dependencia JavaFX. Se requiere JDK 17 o superior. JADE se incluye como biblioteca y dependencia Maven.
 
-Se requiere JDK 17 o superior. Abrir `ejecutar.cmd`, o importar el `pom.xml` raíz en IntelliJ, activar el perfil del integrante y ejecutar su clase Main:
+## Ejecutar desde IntelliJ
 
-| Integrante | Perfil Maven | Main |
-|---|---|---|
-| Emiliano | `emiliano` | `puzzle.emiliano.Main` |
-| Diego | `diego` | `puzzle.diego.Main` |
-| Abraham | `abraham` | `puzzle.abraham.Main` |
+Abrir el `pom.xml` raíz, pulsar **Reload All Maven Projects** y ejecutar la Main de la demostración deseada. No hay perfiles ni módulos que activar.
 
-Cada Main arranca una plataforma JADE real y los agentes necesarios. La consola muestra la versión JADE y el mensaje “JADE iniciado”. JADE viene incluido en `lib/`. La ejecución con los `.cmd` no necesita Maven ni internet. No abrir dos demostraciones a la vez: usan el puerto 1099.
+| Clase | Qué demuestra |
+|---|---|
+| `puzzle.abraham.DemoHeuristica` | Tablero, Manhattan, conflictos independientes y resultado H3 |
+| `puzzle.abraham.DemoGreedy` | Cada estado extraído, su H3, sucesores y ruta final, sin JADE |
+| `puzzle.abraham.Main` | Jugador3 real en JADE: REQUEST, pensar, razonar, actuar e INFORM |
 
-## Interfaz mínima
+Los resultados aparecen en la consola Run de IntelliJ. Para usar la ventana Terminal integrada también se pueden ejecutar estos comandos:
 
-- Título: **Proyecto IA**.
-- Un tablero y un botón por jugador.
-- Emiliano: **Nuevo puzzle** genera un tablero soluble. **Siguiente paso** recorre una muestra legal guardada en memoria; no ejecuta agentes jugadores. La pantalla indica “Ejemplo en memoria”.
-- Diego y Abraham: cada **Siguiente iteración** realiza una extracción real de la frontera Greedy y procesa sus sucesores. La búsqueda espera el próximo clic. **Iniciar** permite reiniciar con el tablero escrito.
+```powershell
+.\build.ps1 -Mode heuristica
+.\build.ps1 -Mode greedy
+.\build.ps1 -Mode agente
+```
 
-El tablero inicial de jugadores es `123406758`, de dos movimientos, para una demostración breve. Una iteración de Greedy puede seleccionar otro nodo de la frontera que no sea vecino del nodo anterior: la interfaz muestra exploración del algoritmo, no una animación de la ruta de solución. La ruta completa se valida al encontrar la meta.
+El ejemplo heurístico es `213456870`: Manhattan 4, dos conflictos independientes y H3 = 8. Greedy y el agente usan `123406758`, que encuentra una ruta de dos movimientos mediante tres extracciones.
+
+## Estructura simple
+
+Todas las clases están en `src/main/java`:
+
+- `DemoHeuristica`: muestra el cálculo e imprime tableros.
+- `DemoGreedy`: muestra una búsqueda por iteraciones y se reutiliza desde jugador3.
+- `GreedySearch`: algoritmo Java estándar, sin JADE ni componentes gráficos.
+- `LinearConflict`: cálculo H3, separado en métodos legibles.
+- `Player3Agent`: interpreta REQUEST en `pensar`, ejecuta Greedy en `razonar` y responde en `actuar`.
+- `AgenteConsola`: solicita la resolución, verifica el resultado y termina la demostración. También tiene pensar, razonar y actuar.
+- `Main`: inicia JADE y los agentes consola/jugador3.
+- `ResultadoBusqueda`: datos serializables de la respuesta.
+- `Board`: tablero inmutable, vecinos legales y solubilidad.
+- `PathValidator`: verifica movimientos, meta y ausencia de estados repetidos.
+
+## Funcionamiento
+
+`consola --REQUEST--> jugador3 --INFORM/FAILURE--> consola`
+
+La petición lleva el tablero y el límite. Jugador3 utiliza el mismo Greedy Java que la demostración independiente. En esta versión individual obtiene los vecinos de `Board` directamente; no arranca un agente grafo adicional. La conexión con el generador del equipo queda para la integración posterior.
+
+Greedy selecciona el menor h de toda la frontera y desempata por orden de llegada. Los vecinos repetidos no vuelven a insertarse. Los nodos mostrados son exploración, no necesariamente jugadas consecutivas. La ruta final sí se valida como una secuencia legal sin repeticiones. Greedy no garantiza el camino más corto.
 
 ## Probar
 
-`probar.cmd` ejecuta las pruebas de lógica y mensajería. En PowerShell también se puede usar:
-
 ```powershell
+.\build.ps1 -Mode motor
 .\build.ps1 -Mode test
-.\build.ps1 -Mode smoke
+.\verificar-integracion.ps1
 ```
 
-El modo `smoke` completa la búsqueda automáticamente por consola; la GUI normal siempre espera clics. `-Mode capture` prueba los botones visibles y guarda una captura. No hay animación automática, estadísticas ni registro técnico dentro de la ventana.
+`motor` compila y ejecuta sin agregar JADE al classpath. `test` revisa H3 en los 181440 estados alcanzables. La integración comprueba caso normal, meta inicial, insoluble y límite. Los dos últimos deben devolver código 2; un límite no prueba insolubilidad.
 
-Cada entrega incluye `common/` y solo el módulo propio. El soporte de Diego y Abraham permite probar sus jugadores independientemente; su motor de referencia y sus herramientas compartidas están identificados en el código. No se presentan como trabajo del otro integrante. Ver `<integrante>/README.md` para el alcance individual y `GIT.md` para las ramas.
+Para cambiar el ejemplo del agente, usar Program arguments en IntelliJ: `--board=123406758 --limit=181440`. En las dos demos independientes se admite un tablero como primer argumento, por ejemplo `213456870`.
 
-Sin Maven, también se puede ejecutar el `.cmd` desde la terminal de IntelliJ. Para una configuración Application manual, marcar `common/src/main/java` y `<integrante>/src/main/java` como fuentes, agregar `lib/jade-4.3.jar` y elegir la Main indicada. Las evidencias de ejecución están en `<integrante>/evidencias/`.
+`ejecutar.cmd` abre la demostración del agente y conserva la terminal visible. `probar.cmd` ejecuta las comprobaciones. La consola no abre RMA ni otras ventanas. No iniciar dos plataformas JADE simultáneamente en el puerto 1099.

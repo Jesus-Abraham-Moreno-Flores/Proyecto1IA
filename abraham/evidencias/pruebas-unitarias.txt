@@ -1,8 +1,0 @@
-AVANCE abraham | JDK: C:\Program Files\Java\jdk-21\bin\java.exe
-COMMON PASS: 3684 comprobaciones de mezcla soluble, vecinos y validacion.
-PASS: BFS exhaustivo 181440 estados; 0 <= h3 <= distancia optima; diametro=31.
-PASS GBFS 123456780 H3 extraidos=1 movimientos=0 optimo_referencia=0
-PASS GBFS 123406758 H3 extraidos=3 movimientos=2 optimo_referencia=2
-PASS GBFS 724506831 H3 extraidos=122 movimientos=38 optimo_referencia=20
-PASS GBFS 867254301 H3 extraidos=90 movimientos=51 optimo_referencia=31
-VERIFICATION PASS Abraham: 363322 comprobaciones.

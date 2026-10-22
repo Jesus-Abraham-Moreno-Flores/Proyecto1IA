@@ -1,50 +1,72 @@
 param(
- [ValidateSet('gui','smoke','test','build','capture')][string]$Mode='gui',
- [ValidateSet('','emiliano','diego','abraham')][string]$Member='',
- [string]$Board='123406758',[int]$Limit=181440,[string]$CapturePath='',
- [string]$JdkHome='',[switch]$Rma,[switch]$ValidateBoard
+    [ValidateSet('agente','heuristica','greedy','motor','test','build','smoke')]
+    [string]$Mode = 'agente',
+    [string]$Board = '123406758',
+    [int]$Limit = 181440,
+    [string]$JdkHome = ''
 )
-$ErrorActionPreference='Stop'
+
+$ErrorActionPreference = 'Stop'
 Set-Location -LiteralPath $PSScriptRoot
-if (!$Member) {
- $members=@('emiliano','diego','abraham' | Where-Object {Test-Path (Join-Path $PSScriptRoot "$_\src\main\java")})
- if($members.Count -ne 1){throw 'Seleccione -Member emiliano, diego o abraham. Debe existir su modulo.'}
- $Member=$members[0]
-}
-if(!(Test-Path "$Member\src\main\java")){throw "Falta el modulo $Member en este checkout."}
-$candidates=@($JdkHome,$env:JAVA_HOME)
-$candidates+=@(Get-ChildItem 'C:\Program Files\Java','C:\Program Files\Eclipse Adoptium',(Join-Path $env:USERPROFILE '.jdks') -Directory -ErrorAction SilentlyContinue | Sort-Object Name -Descending | ForEach-Object FullName)
-$jdk=$candidates | Where-Object {$_ -and (Test-Path (Join-Path $_ 'bin\javac.exe'))} | Select-Object -First 1
-if($jdk){$javac=Join-Path $jdk 'bin\javac.exe';$java=Join-Path $jdk 'bin\java.exe'}
-else {$javac=(Get-Command javac -ErrorAction Stop).Source;$java=(Get-Command java -ErrorAction Stop).Source}
-Write-Host "AVANCE $Member | JDK: $java"
-$classes=Join-Path $PSScriptRoot "target\$Member\classes"
-$testClasses=Join-Path $PSScriptRoot "target\$Member\test-classes"
-$jar=Join-Path $PSScriptRoot 'lib\jade-4.3.jar'
-if(!(Test-Path $jar)){throw 'Falta lib/jade-4.3.jar; restaure la biblioteca del ZIP.'}
-New-Item -ItemType Directory -Force $classes | Out-Null
-$sources=@(Get-ChildItem 'common\src\main\java',"$Member\src\main\java" -Recurse -Filter '*.java' | ForEach-Object FullName)
-& $javac -encoding UTF-8 --release 17 -cp $jar -d $classes $sources
-if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
-if($Mode -eq 'build'){Write-Host "BUILD PASS $Member";exit 0}
-$cp="$classes;$jar"
-if($Mode -eq 'test'){
- New-Item -ItemType Directory -Force $testClasses | Out-Null
- $tests=@(Get-ChildItem 'common\src\test\java',"$Member\src\test\java" -Recurse -Filter '*.java' | ForEach-Object FullName)
- & $javac -encoding UTF-8 --release 17 -cp $cp -d $testClasses $tests
- if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
- & $java -Xmx768m -cp "$testClasses;$cp" puzzle.shared.CommonVerification
- if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
- & $java -Xmx768m -cp "$testClasses;$cp" "puzzle.$Member.Verification"
+
+$candidates = @($JdkHome, $env:JAVA_HOME)
+$candidates += @(Get-ChildItem 'C:\Program Files\Java',
+    (Join-Path $env:USERPROFILE '.jdks') -Directory -ErrorAction SilentlyContinue |
+    Sort-Object Name -Descending | ForEach-Object FullName)
+$jdk = $candidates | Where-Object {
+    $_ -and (Test-Path (Join-Path $_ 'bin\javac.exe'))
+} | Select-Object -First 1
+
+if ($jdk) {
+    $javac = Join-Path $jdk 'bin\javac.exe'
+    $java = Join-Path $jdk 'bin\java.exe'
 } else {
- $appArgs=@("--board=$Board","--limit=$Limit")
- if($Mode -eq 'smoke'){$appArgs+='--smoke'}
- if($Rma){$appArgs+='--rma'}
- if($ValidateBoard){$appArgs+='--validate'}
- if($Mode -eq 'capture'){
-  if(!$CapturePath){$CapturePath=Join-Path $PSScriptRoot "target\$Member\interfaz.png"}
-  $appArgs+="--capture=$CapturePath"
- }
- & $java -Xmx768m -cp $cp "puzzle.$Member.Main" @appArgs
+    $javac = (Get-Command javac -ErrorAction Stop).Source
+    $java = (Get-Command java -ErrorAction Stop).Source
+}
+
+$pureJava = $Mode -in @('heuristica','greedy','motor')
+$outputFolder = if ($pureJava) { 'target\vanilla\classes' } else { 'target\consola\classes' }
+$classes = Join-Path $PSScriptRoot $outputFolder
+$tests = Join-Path $PSScriptRoot 'target\consola\test-classes'
+New-Item -ItemType Directory -Force $classes | Out-Null
+
+if ($pureJava) {
+    $sources = @(Get-ChildItem 'src\main\java' -Recurse -Filter '*.java' |
+        Where-Object Name -notin @('Main.java','Player3Agent.java','AgenteConsola.java') |
+        ForEach-Object FullName)
+    & $javac -encoding UTF-8 --release 17 -d $classes $sources
+    $classpath = $classes
+} else {
+    $jar = Join-Path $PSScriptRoot 'lib\jade-4.3.jar'
+    $sources = @(Get-ChildItem 'src\main\java' -Recurse -Filter '*.java' | ForEach-Object FullName)
+    & $javac -encoding UTF-8 --release 17 -cp $jar -d $classes $sources
+    $classpath = "$classes;$jar"
+}
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+if ($Mode -eq 'build') { Write-Host 'COMPILACION PASS'; exit 0 }
+
+switch ($Mode) {
+    'heuristica' {
+        if ($PSBoundParameters.ContainsKey('Board')) {
+            & $java -cp $classpath puzzle.abraham.DemoHeuristica "--board=$Board"
+        } else {
+            & $java -cp $classpath puzzle.abraham.DemoHeuristica
+        }
+    }
+    'greedy' {
+        & $java -cp $classpath puzzle.abraham.DemoGreedy "--board=$Board"
+    }
+    { $_ -in @('motor','test') } {
+        New-Item -ItemType Directory -Force $tests | Out-Null
+        $testSources = @(Get-ChildItem 'src\test\java' -Recurse -Filter '*.java' | ForEach-Object FullName)
+        & $javac -encoding UTF-8 --release 17 -cp $classpath -d $tests $testSources
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        $testMain = if ($Mode -eq 'motor') { 'puzzle.abraham.PruebaMotorVanilla' } else { 'puzzle.abraham.Verification' }
+        & $java -Xmx768m -cp "$tests;$classpath" $testMain
+    }
+    default {
+        & $java -cp $classpath puzzle.abraham.Main "--board=$Board" "--limit=$Limit"
+    }
 }
 exit $LASTEXITCODE

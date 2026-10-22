@@ -1,0 +1,5 @@
+Motor Java: 123456780 -> 0 movimientos
+Motor Java: 123406758 -> 2 movimientos
+Motor Java: 724506831 -> 38 movimientos
+Motor Java: 867254301 -> 51 movimientos
+MOTOR VANILLA PASS: cuatro rutas verificadas sin iniciar frameworks.
