@@ -9,23 +9,6 @@ import java.util.List;
 
 public abstract class AgenteJugador extends Agent {
 
-    // Contenedor para los resultados del proceso de razonamiento
-    public static class ResultadoBusqueda {
-        private final List<Board> solucion;
-        private final long tiempoTotal;
-        private final int nodosExpandidos;
-
-        public ResultadoBusqueda(List<Board> solucion, long tiempoTotal, int nodosExpandidos) {
-            this.solucion = solucion;
-            this.tiempoTotal = tiempoTotal;
-            this.nodosExpandidos = nodosExpandidos;
-        }
-
-        public List<Board> getSolucion() { return solucion; }
-        public long getTiempoTotal() { return tiempoTotal; }
-        public int getNodosExpandidos() { return nodosExpandidos; }
-    }
-
     protected final int[] estadoMeta = {1, 2, 3, 4, 5, 6, 7, 8, 0};
 
     @Override
@@ -58,7 +41,7 @@ public abstract class AgenteJugador extends Agent {
             String formatoAbraham = strTableroGUI.replace(",", "");
             Board estadoInicial = new Board(formatoAbraham);
 
-            // Fase 2: Razonar (se delega a la subclase específica)
+            // Fase 2: Razonar (retorna el record ResultadoBusqueda)
             ResultadoBusqueda resultado = razonar(estadoInicial);
 
             // Fase 3: Actuar (envía la respuesta a la GUI)
@@ -74,19 +57,19 @@ public abstract class AgenteJugador extends Agent {
     protected abstract ResultadoBusqueda razonar(Board estadoInicial);
 
     /**
-     * ACTUAR: Formatea y envía los mensajes de respuesta hacia la GUI.
+     * ACTUAR: Formatea y envía los mensajes de respuesta hacia la GUI usando el Record.
      */
     protected void actuar(AID receptorGUI, ResultadoBusqueda resultado) {
-        List<Board> solucion = resultado.getSolucion();
-        int longitudCamino = solucion.isEmpty() ? 0 : solucion.size() - 1;
+        List<Board> solucion = resultado.ruta();
+        int pasos = solucion.isEmpty() ? 0 : solucion.size() - 1;
 
         String msjResultados = String.format(
-                "¡Meta encontrada! | Tiempo: %d ms | Expandidos: %d nodos | Pasos: %d",
-                resultado.getTiempoTotal(), resultado.getNodosExpandidos(), longitudCamino
+                "¡Meta encontrada! | Detalle: %s | Expandidos: %d nodos | Pasos: %d",
+                resultado.detalle(), resultado.iteraciones(), pasos
         );
         enviarMensajeGUI(msjResultados, receptorGUI);
 
-        if (!solucion.isEmpty()) {
+        if (resultado.resuelto() && !solucion.isEmpty()) {
             StringBuilder rutaStr = new StringBuilder("ruta|");
             for (Board b : solucion) {
                 rutaStr.append(b.key()).append("-");

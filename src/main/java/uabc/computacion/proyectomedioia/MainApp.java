@@ -1,6 +1,8 @@
 package uabc.computacion.proyectomedioia;
 
 import jade.core.Profile;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import jade.core.ProfileImpl;
 import jade.core.Runtime;
 import jade.wrapper.AgentContainer;
@@ -218,65 +220,25 @@ public class MainApp extends Application {
 
     public void animarSecuenciaGanadora(List<byte[]> secuencia, String emisor) {
         Platform.runLater(() -> {
-            lblEstado.setText("> [" + emisor.toUpperCase() + "] Animando solución...");
-            gridFichas.getChildren().clear();
-            for (int i = 0; i < 9; i++) {
-                int numero = secuencia.get(0)[i];
-                Label ficha = new Label();
-                ficha.setPrefSize(TAMANO_CASILLA, TAMANO_CASILLA);
-                ficha.setAlignment(Pos.CENTER);
-                if (numero == 0) {
-                    ficha.setText("");
-                    ficha.setStyle("-fx-background-color: transparent;");
-                } else {
-                    ficha.setText(String.valueOf(numero));
-                    ficha.setStyle("-fx-background-color: #1a1e24; -fx-border-color: #00ff66; -fx-border-radius: 5; -fx-border-width: 2; -fx-text-fill: #00ff66; -fx-font-size: 24px; -fx-font-weight: bold;");
-                }
-                gridFichas.add(ficha, i % 3, i / 3);
+            lblEstado.setText("> [" + emisor.toUpperCase() + "] Animando solución (" + (secuencia.size() - 1) + " pasos)...");
+
+            Timeline timeline = new Timeline();
+            int intervaloMs = 300; // Ajusta el tiempo (en milisegundos) entre cada paso
+
+            for (int i = 0; i < secuencia.size(); i++) {
+                final int pasoActual = i;
+                KeyFrame frame = new KeyFrame(
+                        Duration.millis(i * intervaloMs),
+                        e -> pintarTablero(secuencia.get(pasoActual))
+                );
+                timeline.getKeyFrames().add(frame);
             }
 
-            SequentialTransition animacionGlobal = new SequentialTransition();
-            int desplazamientoPixeles = TAMANO_CASILLA + ESPACIADO;
-
-            for (int i = 0; i < secuencia.size() - 1; i++) {
-                byte[] estadoActual = secuencia.get(i);
-                byte[] estadoSiguiente = secuencia.get(i + 1);
-
-                int posHuecoActual = -1;
-                int posFichaMovida = -1;
-
-                for (int j = 0; j < 9; j++) {
-                    if (estadoActual[j] == 0) posHuecoActual = j;
-                    if (estadoSiguiente[j] == 0) posFichaMovida = j;
-                }
-
-                if (posFichaMovida == -1) continue;
-
-                byte numeroFicha = estadoActual[posFichaMovida];
-                Node nodoFicha = buscarNodoPorNumero(numeroFicha);
-
-                if (nodoFicha != null) {
-                    int colInicial = posFichaMovida % 3;
-                    int filaInicial = posFichaMovida / 3;
-                    int colFinal = posHuecoActual % 3;
-                    int filaFinal = posHuecoActual / 3;
-
-                    int deltaX = (colFinal - colInicial) * desplazamientoPixeles;
-                    int deltaY = (filaFinal - filaInicial) * desplazamientoPixeles;
-
-                    TranslateTransition transicion = new TranslateTransition(Duration.millis(250), nodoFicha);
-                    transicion.setByX(deltaX);
-                    transicion.setByY(deltaY);
-
-                    animacionGlobal.getChildren().add(transicion);
-                }
-            }
-
-            animacionGlobal.setOnFinished(e -> {
-                pintarTablero(secuencia.get(secuencia.size() - 1));
+            timeline.setOnFinished(e -> {
+                lblEstado.setText("> [" + emisor.toUpperCase() + "] ¡Demostración finalizada con éxito!");
             });
 
-            animacionGlobal.play();
+            timeline.play();
         });
     }
 
@@ -308,13 +270,14 @@ public class MainApp extends Application {
                 AgentController acGenerador = contenedorPrincipal.createNewAgent("generador", "uabc.computacion.proyectomedioia.AgenteGenerador", null);
                 acGenerador.start();
 
-                AgentController acJugador1 = contenedorPrincipal.createNewAgent("jugador1", "uabc.computacion.proyectomedioia.AgenteJugador", null);
+                // Instanciación corregida usando las subclases específicas
+                AgentController acJugador1 = contenedorPrincipal.createNewAgent("jugador1", "uabc.computacion.proyectomedioia.AgenteJugadorPiezaFuera", null);
                 acJugador1.start();
 
-                AgentController acJugador2 = contenedorPrincipal.createNewAgent("jugador2", "uabc.computacion.proyectomedioia.AgenteJugador", null);
+                AgentController acJugador2 = contenedorPrincipal.createNewAgent("jugador2", "uabc.computacion.proyectomedioia.AgenteJugadorManhattan", null);
                 acJugador2.start();
 
-                AgentController acJugador3 = contenedorPrincipal.createNewAgent("jugador3", "uabc.computacion.proyectomedioia.AgenteJugador", null);
+                AgentController acJugador3 = contenedorPrincipal.createNewAgent("jugador3", "uabc.computacion.proyectomedioia.AgenteJugadorLinearConflict", null);
                 acJugador3.start();
 
                 agregarTextoPantalla("SISTEMA", "Plataforma JADE lista. Listos para competir.");

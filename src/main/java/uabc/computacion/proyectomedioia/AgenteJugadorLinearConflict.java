@@ -14,6 +14,10 @@ public class AgenteJugadorLinearConflict extends AgenteJugador {
         List<Board> solucion = buscador.resolver();
         long tiempoTotal = System.currentTimeMillis() - tiempoInicio;
 
-        return new ResultadoBusqueda(solucion, tiempoTotal, buscador.expanded());
+        boolean resuelto = !solucion.isEmpty();
+        String detalle = tiempoTotal + " ms";
+
+        // Instanciación adecuada para los 4 campos del record: (resuelto, detalle, ruta, iteraciones)
+        return new ResultadoBusqueda(resuelto, detalle, solucion, buscador.expanded());
     }
 }

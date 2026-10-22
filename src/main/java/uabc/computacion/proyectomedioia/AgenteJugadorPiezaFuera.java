@@ -15,6 +15,10 @@ public class AgenteJugadorPiezaFuera extends AgenteJugador {
         List<Board> solucion = buscador.resolver();
         long tiempoTotal = System.currentTimeMillis() - tiempoInicio;
 
-        return new ResultadoBusqueda(solucion, tiempoTotal, buscador.expanded());
+        boolean resuelto = !solucion.isEmpty();
+        String detalle = tiempoTotal + " ms";
+
+        // Instanciación adaptada al Record: (resuelto, detalle, ruta, iteraciones)
+        return new ResultadoBusqueda(resuelto, detalle, solucion, buscador.expanded());
     }
 }
