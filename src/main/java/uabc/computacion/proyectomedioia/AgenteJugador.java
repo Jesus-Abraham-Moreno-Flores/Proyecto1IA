@@ -36,17 +36,20 @@ public abstract class AgenteJugador extends Agent {
 
         if (contenido != null && contenido.startsWith("competencia_iniciada|")) {
             String strTableroGUI = contenido.split("\\|")[1];
-            enviarMensajeGUI("¡Recibí el tablero! Iniciando búsqueda...", msg.getSender());
 
-            String formatoAbraham = strTableroGUI.replace(",", "");
-            Board estadoInicial = new Board(formatoAbraham);
+            // Apuntamos a la GUI local asociada a este agente (gui_jugador1, gui_jugador2, etc.)
+            AID miGuiLocal = new AID("gui_" + getLocalName(), AID.ISLOCALNAME);
+            enviarMensajeGUI("¡Recibí el tablero! Iniciando búsqueda...", miGuiLocal);
+
+            String formatoPuzzle = strTableroGUI.replace(",", "").trim();
+            Board estadoInicial = new Board(formatoPuzzle);
 
             // Fase 2: Razonar (retorna el record ResultadoBusqueda)
             ResultadoBusqueda resultado = razonar(estadoInicial);
 
-            // Fase 3: Actuar (envía la respuesta a la GUI)
+            // Fase 3: Actuar (envía el resultado a la GUI local)
             if (resultado != null) {
-                actuar(msg.getSender(), resultado);
+                actuar(miGuiLocal, resultado);
             }
         }
     }
@@ -57,18 +60,31 @@ public abstract class AgenteJugador extends Agent {
     protected abstract ResultadoBusqueda razonar(Board estadoInicial);
 
     /**
-     * ACTUAR: Formatea y envía los mensajes de respuesta hacia la GUI usando el Record.
+     * ACTUAR: Formatea y envía las métricas y la ruta de animación a la GUI local.
      */
     protected void actuar(AID receptorGUI, ResultadoBusqueda resultado) {
         List<Board> solucion = resultado.ruta();
         int pasos = solucion.isEmpty() ? 0 : solucion.size() - 1;
 
+        // Extraer tiempo en milisegundos desde el detalle ("12 ms" -> 12)
+        long tiempoMs = 0;
+        try {
+            tiempoMs = Long.parseLong(resultado.detalle().replace(" ms", "").trim());
+        } catch (Exception ignored) {}
+
+        // 1. Enviar métricas estructuradas para el Dashboard
+        String msjMetricas = String.format("metricas|%s|%d|%d|%d",
+                getLocalName(), tiempoMs, resultado.iteraciones(), pasos);
+        enviarMensajeGUI(msjMetricas, receptorGUI);
+
+        // 2. Enviar texto descriptivo para la barra de estado inferior
         String msjResultados = String.format(
-                "¡Meta encontrada! | Detalle: %s | Expandidos: %d nodos | Pasos: %d",
+                "¡Meta encontrada! | Tiempo: %s | Expandidos: %d nodos | Pasos: %d",
                 resultado.detalle(), resultado.iteraciones(), pasos
         );
         enviarMensajeGUI(msjResultados, receptorGUI);
 
+        // 3. Enviar la ruta completa para animar los movimientos en la pantalla local
         if (resultado.resuelto() && !solucion.isEmpty()) {
             StringBuilder rutaStr = new StringBuilder("ruta|");
             for (Board b : solucion) {

@@ -1,42 +1,74 @@
 package uabc.computacion.proyectomedioia;
 
 import jade.core.Agent;
+import jade.core.AID;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.lang.acl.ACLMessage;
 import java.util.Random;
 
 public class AgenteGenerador extends Agent {
 
+    private byte[] tableroActual;
+
     @Override
     protected void setup() {
         System.out.println("Generador en linea: " + getLocalName());
+
+        // Generar un tablero válido inicial al arrancar el servidor
+        tableroActual = crearTableroValido();
 
         addBehaviour(new CyclicBehaviour(this) {
             @Override
             public void action() {
                 ACLMessage msg = myAgent.receive();
                 if (msg != null) {
-                    // Nos piden un tablero nuevo porque el usuario presiono el boton
-                    if (msg.getPerformative() == ACLMessage.REQUEST && msg.getContent().equals("dame_tablero")) {
-                        byte[] nuevoTablero = crearTableroValido();
+                    String contenido = msg.getContent();
 
-                        // Empaquetamos el arreglo en un String separado por comas para mandarlo facil
-                        StringBuilder textoTablero = new StringBuilder();
-                        for (int i = 0; i < nuevoTablero.length; i++) {
-                            textoTablero.append(nuevoTablero[i]);
-                            if(i < nuevoTablero.length - 1) textoTablero.append(",");
-                        }
+                    if ("pedir_tablero".equals(contenido) || "dame_tablero".equals(contenido)) {
+                        // Generar un nuevo tablero resoluble
+                        tableroActual = crearTableroValido();
 
-                        ACLMessage respuesta = msg.createReply();
-                        respuesta.setPerformative(ACLMessage.INFORM);
-                        respuesta.setContent(textoTablero.toString());
-                        send(respuesta);
+                        // Notificar el mismo tablero a las GUIs de todas las computadoras
+                        notificarTableroAGuis(convertirAString(tableroActual));
+
+                    } else if ("iniciar_competencia".equals(contenido)) {
+                        // Enviar el tablero actual a todos los agentes jugadores
+                        iniciarCompetenciaJugadores(convertirAString(tableroActual));
                     }
                 } else {
-                    block(); // Le damos un respiro a la CPU si no hay mensajes
+                    block(); // Liberar CPU mientras no haya mensajes
                 }
             }
         });
+    }
+
+    private void notificarTableroAGuis(String tableroStr) {
+        ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+        msg.addReceiver(new AID("gui_jugador1", AID.ISLOCALNAME));
+        msg.addReceiver(new AID("gui_jugador2", AID.ISLOCALNAME));
+        msg.addReceiver(new AID("gui_jugador3", AID.ISLOCALNAME));
+        msg.setContent("tablero|" + tableroStr);
+        send(msg);
+    }
+
+    private void iniciarCompetenciaJugadores(String tableroStr) {
+        ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+        msg.addReceiver(new AID("jugador1", AID.ISLOCALNAME));
+        msg.addReceiver(new AID("jugador2", AID.ISLOCALNAME));
+        msg.addReceiver(new AID("jugador3", AID.ISLOCALNAME));
+        msg.setContent("competencia_iniciada|" + tableroStr);
+        send(msg);
+    }
+
+    private String convertirAString(byte[] tablero) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < tablero.length; i++) {
+            sb.append(tablero[i]);
+            if (i < tablero.length - 1) {
+                sb.append(",");
+            }
+        }
+        return sb.toString();
     }
 
     private byte[] crearTableroValido() {
@@ -69,7 +101,7 @@ public class AgenteGenerador extends Agent {
         int inversas = 0;
         for (int i = 0; i < tablero.length - 1; i++) {
             for (int j = i + 1; j < tablero.length; j++) {
-                // El 0 es el hueco, asi que lo saltamos en el conteo
+                // El 0 es el hueco, así que lo saltamos en el conteo
                 if (tablero[i] != 0 && tablero[j] != 0 && tablero[i] > tablero[j]) {
                     inversas++;
                 }
